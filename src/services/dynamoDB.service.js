@@ -1,5 +1,5 @@
-import { PutCommand, getCommand } from "@aws-sdk/lib-dynamodb";
-import DynamoDB from "../config/db";
+import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import DynamoDB from "../config/db.js";
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
@@ -23,7 +23,7 @@ const getUserTokens = async (email) => {
       email: { S: email },
     },
   };
-  const response = await DynamoDB.send(new getCommand(params));
+  const response = await DynamoDB.send(new GetCommand(params));
   return response.Item ? response.Item.tokens : null;
 };
 

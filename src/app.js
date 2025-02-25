@@ -5,6 +5,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit"; // eslint-disable-line
+import authRouter from "./routes/authRoutes.js";
+import emailRouter from "./routes/emailRoutes.js";
 
 dotenv.config();
 
@@ -47,9 +49,12 @@ app.get("/", (req, res) => {
 });
 
 // Error Handling Middleware
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ success: false, message: "Internal Server Error" });
 });
+
+app.use("/auth", authRouter);
+app.use("/email", emailRouter);
 
 export { app };

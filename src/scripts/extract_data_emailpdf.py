@@ -4,19 +4,19 @@ from tabula import read_pdf
 from PyPDF2 import PdfReader
 import google.generativeai as genai
 
-GEMINI_API_KEY = "YOUR_GEMINI_API_KEY"
 
-def extract_table_from_pdf(pdf_path,passkey):
+def extract_table_from_pdf(pdf_path, passkey, gemini_api_key):
     try:
         # Get the total number of pages in the PDF
         with open(pdf_path, "rb") as file:
             reader = PdfReader(file)
             if reader.is_encrypted:
-                reader.decrypt("DFLPS1544Q")
+                reader.decrypt(passkey)
 
             total_pages = len(reader.pages)
 
         extracted_data = []
+
 
         for page_num in range(1, total_pages + 1):
             # Extract tables from each page
@@ -28,7 +28,7 @@ def extract_table_from_pdf(pdf_path,passkey):
                     "data": table.fillna("").to_dict(orient="records")
                 })
         
-        extract_gemini_data = send_to_gemini(json.dumps(extracted_data,indent=2, ensure_ascii=False))
+        extract_gemini_data = send_to_gemini(json.dumps(extracted_data,indent=2, ensure_ascii=False), gemini_api_key)
 
         print(extract_gemini_data)
         sys.stdout.flush()
@@ -40,8 +40,8 @@ def extract_table_from_pdf(pdf_path,passkey):
 
 # CONVERT IN JSON VIA GEMINI:
 
-def send_to_gemini(data):
-    genai.configure(api_key=GEMINI_API_KEY)
+def send_to_gemini(data, gemini_api_key):
+    genai.configure(api_key=gemini_api_key)
     generation_config = {
         "temperature": 0,
         "top_p": 0.95,
@@ -97,17 +97,29 @@ def send_to_gemini(data):
         Return **ONLY** valid JSON.
     """
 
-    response = model.generate_content(prompt)
-
+    response = model.generate_content(prompt, request_options={"timeout": 60})
+    
     json_data = json.loads(response.text)  # Convert response to JSON
 
-    print("::::::::::::::::::::::::opeai ai output::::::::::::::::::::::")
-    print(json.dumps(json_data))
-    print("::::::::::::::::::::::::opeai ai output::::::::::::::::::::::")
-    return response.text
+    # print("::::::::::::::::::::::::opeai ai output::::::::::::::::::::::")
+    # print(json.dumps(json_data))
+    # print("::::::::::::::::::::::::opeai ai output::::::::::::::::::::::")
+    # return response.text
+
+    try:
+        json_data = json.loads(response.text)  
+        return json_data
+    except json.JSONDecodeError:
+        print("❌ Error: Gemini API returned invalid JSON")
+        return {}
+
+    finally:
+        sys.stdout.flush()  
 
     
 
 if __name__ == "__main__":
     pdf_path = sys.argv[1]
-    extract_table_from_pdf(pdf_path,passkey)
+    passkey = sys.argv[2]
+    gemini_api_key = sys.argv[3]
+    extract_table_from_pdf(pdf_path, passkey, gemini_api_key )
